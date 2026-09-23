@@ -1,4 +1,4 @@
-# Configurable “Is X Dead?” site
+# Configurable “Is X Dead Yet?” site
 
 The page is static. A scheduled GitHub Action checks the configured Wikipedia article, resolves it to Wikidata, looks for Wikidata property `P570` (date of death), and regenerates `status.js`.
 
