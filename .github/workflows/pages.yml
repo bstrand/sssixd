@@ -26,14 +26,14 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
 
-      - name: Check Wikidata
+      - name: Check Wiki
         run: node scripts/check-wikidata.mjs
 
       - name: Configure Pages
