@@ -34,7 +34,7 @@ jobs:
           node-version: 22
 
       - name: Check Wiki
-        run: node scripts/check-wiki.js
+        run: node site/scripts/check-wiki.js
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
