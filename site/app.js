@@ -1,43 +1,63 @@
 (() => {
-  const config = window.SITE_CONFIG ?? {};
-  const status = window.SITE_STATUS ?? {};
+  const config = window.SITE_CONFIG;
+  const status = window.SITE_STATUS;
 
-  const subject = String(config.subject ?? "X").trim();
-  const rawAnswer = String(status.answer ?? "Unknown").trim();
-  const answer = rawAnswer.replace(/[.!?]+$/, "");
-  const checkedAt = status.checkedAt ? new Date(status.checkedAt) : null;
+  const subject =
+    config?.subject ?? "X";
 
-  const question = `Is ${subject} Dead?`;
-  document.getElementById("question").textContent = question;
-  document.getElementById("answer").textContent = `${answer}.`;
+  const answer =
+    status?.answer ?? "Unknown";
+
+  const question =
+    `Is ${subject} Dead?`;
+
   document.title = question;
 
-  const timeEl = document.getElementById("last-checked");
+  document
+    .getElementById("question")
+    .textContent = question;
 
-  if (!checkedAt || Number.isNaN(checkedAt.getTime())) {
-    timeEl.textContent = "Never";
-    timeEl.removeAttribute("datetime");
+  document
+    .getElementById("answer")
+    .textContent = `${answer}.`;
+
+  const time =
+    document.getElementById("last-checked");
+
+  if (!status?.checkedAt) {
+    time.textContent = "Not yet checked";
     return;
   }
 
-  timeEl.dateTime = checkedAt.toISOString();
+  const checked =
+    new Date(status.checkedAt);
 
-  const locale = config.locale || "en-US";
-  const timeZone = config.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const date =
+    new Intl.DateTimeFormat(
+      config.locale ?? "en-US",
+      {
+        timeZone:
+          config.timeZone ??
+          "America/Detroit",
+        month: "long",
+        day: "numeric",
+        year: "numeric"
+      }
+    ).format(checked);
 
-  const datePart = new Intl.DateTimeFormat(locale, {
-    timeZone,
-    month: "long",
-    day: "numeric",
-    year: "numeric"
-  }).format(checkedAt);
+  const clock =
+    new Intl.DateTimeFormat(
+      config.locale ?? "en-US",
+      {
+        timeZone:
+          config.timeZone ??
+          "America/Detroit",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZoneName: "short"
+      }
+    ).format(checked);
 
-  const timePart = new Intl.DateTimeFormat(locale, {
-    timeZone,
-    hour: "numeric",
-    minute: "2-digit",
-    timeZoneName: "short"
-  }).format(checkedAt);
-
-  timeEl.textContent = `${datePart}  ${timePart}`;
+  time.textContent =
+    `${date}  ${clock}`;
 })();

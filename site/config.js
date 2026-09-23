@@ -1,11 +1,13 @@
 // Edit this file to reuse the site for another subject.
 const SITE_CONFIG = {
-  subject: "Sarte",
-  wikiSource: "https://en.wikipedia.org/wiki/Jean-Paul_Sartre",
+  subject: 
+    "Sartre",
+  wikiSource:
+    "https://en.wikipedia.org/wiki/Jean-Paul_Sartre",
 
-  // Display settings:
+  // Optional display settings:
   locale: "en-US",
-  timeZone: "America/New_York"
+  timeZone: "America/Detroit"
 };
 
 if (typeof window !== "undefined") window.SITE_CONFIG = SITE_CONFIG;
