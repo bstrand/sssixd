@@ -1,11 +1,16 @@
-import fs from "node:fs/promises";
-import vm from "node:vm";
+const fs = require("fs");
+const vm = require("vm");
+const path = require("path");
 
-const CONFIG_PATH = "site/config.js";
-const STATUS_PATH = "site/status.js";
+const CONFIG_PATH = path.join(__dirname, "..", "site", "config.js");
+const STATUS_PATH = path.join(__dirname, "..", "site", "status.js");
 
-async function readConfig() {
-  const source = await fs.readFile(CONFIG_PATH, "utf8");
+function loadConfig() {
+  if (!fs.existsSync(CONFIG_PATH)) {
+    throw new Error(`Config file not found: ${CONFIG_PATH}`);
+  }
+
+  const source = fs.readFileSync(CONFIG_PATH, "utf8");
 
   const sandbox = {
     window: {}
@@ -14,70 +19,142 @@ async function readConfig() {
   vm.createContext(sandbox);
   vm.runInContext(source, sandbox);
 
-  return sandbox.window.SITE_CONFIG;
-}
+  const config = sandbox.window.SITE_CONFIG;
 
-function parseWikipediaUrl(source) {
-  const url = new URL(source);
-
-  const match = url.hostname.match(/^([a-z-]+)\.wikipedia\.org$/);
-
-  if (!match) {
+  if (!config) {
     throw new Error(
-      `wikiSource must be a Wikipedia URL; received ${source}`
+      "site/config.js did not define window.SITE_CONFIG"
     );
   }
 
-  const language = match[1];
+  if (!config.wikiSource) {
+    throw new Error(
+      "SITE_CONFIG.wikiSource is required"
+    );
+  }
 
+  return config;
+}
 
-  const title = decodeURIComponent(
-    url.pathname.slice("/wiki/".length)
-  ).replaceAll("_", " ");
+function parseWikipediaUrl(source) {
+  let url;
+
+  try {
+    url = new URL(source);
+  } catch {
+    throw new Error(
+      `Invalid wikiSource URL: ${source}`
+    );
+  }
+
+  const hostnameMatch =
+    url.hostname.match(/^([a-z0-9-]+)\.wikipedia\.org$/i);
+
+  if (!hostnameMatch) {
+    throw new Error(
+      `wikiSource must be a Wikipedia URL, got: ${source}`
+    );
+  }
+
+  if (!url.pathname.startsWith("/wiki/")) {
+    throw new Error(
+      `wikiSource must point to a Wikipedia article, got: ${source}`
+    );
+  }
+
+  const language = hostnameMatch[1];
+
+  const rawTitle =
+    url.pathname.substring("/wiki/".length);
+
+  if (!rawTitle) {
+    throw new Error(
+      `Could not determine Wikipedia article title from: ${source}`
+    );
+  }
+
+  let title;
+
+  try {
+    title = decodeURIComponent(rawTitle)
+      .replace(/_/g, " ");
+  } catch {
+    throw new Error(
+      `Could not decode Wikipedia article title: ${rawTitle}`
+    );
+  }
 
   return {
     language,
-    site: `${language} wiki`,
+    site: `${language}wiki`,
     title
   };
 }
 
-async function fetchEntity(site, title) {
-  const params = new URLSearchParams({
+function buildWikidataUrl(site, title) {
+  const url =
+    new URL("https://www.wikidata.org/w/api.php");
+
+  url.search = new URLSearchParams({
     action: "wbgetentities",
     sites: site,
     titles: title,
     props: "claims|labels|sitelinks",
     languages: "en",
     format: "json",
-    formatversion: "2",
-    origin: "*"
+    formatversion: "2"
+  }).toString();
+
+  return url;
+}
+
+async function fetchWikidataEntity(site, title) {
+  const url = buildWikidataUrl(site, title);
+
+  console.log("Wikidata request:");
+  console.log(url.toString());
+
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent":
+        "sssixd/1.0 (https://github.com/bstrand/sssixd)",
+      "Accept": "application/json"
+    }
   });
 
-  const response = await fetch(
-    url  = "https://www.wikidata.org/w/api.php?"
-    url += params
-    `url`,
-    {
-      headers: {
-        "User-Agent":
-          "sssixd/1.0 (https://github.com/bstrand/sssixd)"
-      }
-    }
-  );
-
   if (!response.ok) {
+    const body = await response.text();
+
     throw new Error(
-      `Wiki returned HTTP ${response.status} from $url`
+      `Wikidata request failed: HTTP ${response.status}\n${body}`
     );
   }
 
   const data = await response.json();
-  const entity = data.entities?.[0];
 
-  if (!entity || entity.missing) {
+  if (!data.entities) {
     throw new Error(
-      `No Wiki entity found for ${site}:${title}`
+      `Unexpected Wikidata response: ${JSON.stringify(data)}`
+    );
+  }
+
+  /*
+   * formatversion=2 normally returns entities as an object
+   * keyed by Q-id, so don't assume data.entities[0].
+   */
+  const entities = Object.values(data.entities);
+
+  if (entities.length === 0) {
+    throw new Error(
+      `No Wikidata entity found for ${site}:${title}`
+    );
+  }
+
+  const entity = entities[0];
+
+  if (entity.missing !== undefined) {
+    throw new Error(
+      `Wikidata entity is missing for ${site}:${title}`
     );
   }
 
@@ -85,50 +162,63 @@ async function fetchEntity(site, title) {
 }
 
 function getDateOfDeath(entity) {
-  const statements = entity.claims?.P570 ?? [];
+  /*
+   * P570 = date of death
+   */
+  const claims = entity.claims?.P570 ?? [];
 
-  // Ignore deprecated claims.
-  const usable = statements.filter(
-    statement => statement.rank !== "deprecated"
-  );
-
-  const preferred =
-    usable.find(statement => statement.rank === "preferred") ??
-    usable[0];
-
-  const value =
-    preferred?.mainsnak?.datavalue?.value;
-
-  return value?.time ?? null;
-}
-
-async function main() {
-  const config = await readConfig();
-
-  if (!config?.wikiSource) {
-    throw new Error(
-      "SITE_CONFIG.wikiSource is required"
-    );
+  if (claims.length === 0) {
+    return null;
   }
 
-  const { site, title } =
-    parseWikipediaUrl(config.wikiSource);
+  /*
+   * Ignore deprecated claims.
+   */
+  const usableClaims =
+    claims.filter(
+      claim => claim.rank !== "deprecated"
+    );
 
-  console.log(`Checking ${site}:${title}`);
+  if (usableClaims.length === 0) {
+    return null;
+  }
 
-  const entity =
-    await fetchEntity(site, title);
+  /*
+   * Prefer a preferred-rank statement if present.
+   */
+  const claim =
+    usableClaims.find(
+      claim => claim.rank === "preferred"
+    ) ?? usableClaims[0];
 
-  const dateOfDeath =
-    getDateOfDeath(entity);
+  const value =
+    claim?.mainsnak?.datavalue?.value;
 
-  const status = {
-    answer: dateOfDeath ? "Yes." : "No.",
-    checkedAt: new Date().toISOString(),
-    wikiId: entity.id,
-    dateOfDeath
-  };
+  if (!value || typeof value.time !== "string") {
+    return null;
+  }
 
+  return value.time;
+}
+
+function normalizeWikidataDate(rawDate) {
+  if (!rawDate) {
+    return null;
+  }
+
+  /*
+   * Wikidata dates often look like:
+   *
+   * +1980-04-15T00:00:00Z
+   *
+   * Strip the leading + for cleaner output.
+   */
+  return rawDate.startsWith("+")
+    ? rawDate.substring(1)
+    : rawDate;
+}
+
+function writeStatus(status) {
   const output =
     `window.SITE_STATUS = ${JSON.stringify(
       status,
@@ -136,16 +226,62 @@ async function main() {
       2
     )};\n`;
 
-  await fs.writeFile(
+  fs.writeFileSync(
     STATUS_PATH,
     output,
     "utf8"
   );
 
-  console.log(status);
+  console.log("");
+  console.log(`Wrote ${STATUS_PATH}`);
+}
+
+async function main() {
+  console.log("Loading site configuration...");
+
+  const config = loadConfig();
+
+  console.log(`Subject: ${config.subject}`);
+  console.log(`Source: ${config.wikiSource}`);
+
+  const parsed =
+    parseWikipediaUrl(config.wikiSource);
+
+  console.log(`Wikipedia site: ${parsed.site}`);
+  console.log(`Wikipedia title: ${parsed.title}`);
+
+  const entity =
+    await fetchWikidataEntity(
+      parsed.site,
+      parsed.title
+    );
+
+  console.log("");
+  console.log(`Wikidata entity: ${entity.id}`);
+
+  const rawDateOfDeath =
+    getDateOfDeath(entity);
+
+  const dateOfDeath =
+    normalizeWikidataDate(rawDateOfDeath);
+
+  const status = {
+    answer: dateOfDeath ? "Yes" : "No",
+    checkedAt: new Date().toISOString(),
+    wikidataId: entity.id,
+    dateOfDeath
+  };
+
+  console.log("");
+  console.log("Result:");
+  console.log(JSON.stringify(status, null, 2));
+
+  writeStatus(status);
 }
 
 main().catch(error => {
+  console.error("");
+  console.error("Check failed:");
   console.error(error);
   process.exit(1);
 });
