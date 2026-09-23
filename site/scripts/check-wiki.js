@@ -55,7 +55,8 @@ async function fetchEntity(site, title) {
   });
 
   const response = await fetch(
-    url = "https://www.wikidata.org/w/api.php?" + ${params}
+    url  = "https://www.wikidata.org/w/api.php?"
+    url += params
     `url`,
     {
       headers: {
