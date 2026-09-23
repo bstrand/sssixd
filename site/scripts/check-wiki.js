@@ -55,7 +55,8 @@ async function fetchEntity(site, title) {
   });
 
   const response = await fetch(
-    `https://www.wikidata.org/w/api.php?${params}`,
+    url = "https://www.wikidata.org/w/api.php?" + ${params}
+    `url`,
     {
       headers: {
         "User-Agent":
@@ -66,7 +67,7 @@ async function fetchEntity(site, title) {
 
   if (!response.ok) {
     throw new Error(
-      `Wiki returned HTTP ${response.status}`
+      `Wiki returned HTTP ${response.status} from $url`
     );
   }
 
