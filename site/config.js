@@ -1,9 +1,9 @@
 // Edit this file to reuse the site for another subject.
 const SITE_CONFIG = {
   subject: 
-    "Sartre",
+    "Chomsky",
   wikiSource:
-    "https://en.wikipedia.org/wiki/Jean-Paul_Sartre",
+    "https://en.wikipedia.org/wiki/Noam_Chomsky",
   deadImage: 
     "images/dead.jpg",
   locale: 
