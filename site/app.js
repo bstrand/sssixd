@@ -9,7 +9,7 @@
     status?.answer ?? "Unknown";
 
   const question =
-    `Is ${subject} Dead?`;
+    `Is ${subject} Dead Yet?`;
 
   document.title = question;
 
