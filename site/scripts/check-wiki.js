@@ -30,11 +30,6 @@ function parseWikipediaUrl(source) {
 
   const language = match[1];
 
-  if (!url.pathname.startsWith("/wiki/")) {
-    throw new Error(
-      `wikiSource must point to a Wikipedia article`
-    );
-  }
 
   const title = decodeURIComponent(
     url.pathname.slice("/wiki/".length)
@@ -71,7 +66,7 @@ async function fetchEntity(site, title) {
 
   if (!response.ok) {
     throw new Error(
-      `Wikidata returned HTTP ${response.status}`
+      `Wiki returned HTTP ${response.status}`
     );
   }
 
@@ -80,7 +75,7 @@ async function fetchEntity(site, title) {
 
   if (!entity || entity.missing) {
     throw new Error(
-      `No Wikidata entity found for ${site}:${title}`
+      `No Wiki entity found for ${site}:${title}`
     );
   }
 
@@ -126,9 +121,9 @@ async function main() {
     getDateOfDeath(entity);
 
   const status = {
-    answer: dateOfDeath ? "Yes" : "No",
+    answer: dateOfDeath ? "Yes." : "No.",
     checkedAt: new Date().toISOString(),
-    wikidataId: entity.id,
+    wikiId: entity.id,
     dateOfDeath
   };
 
