@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
   schedule:
-    - cron: "23 45 * * *"
+    - cron: "45 23 * * *"
       timezone: "America/Detroit"
 
 permissions:
