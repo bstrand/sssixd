@@ -1,10 +1,12 @@
-// Edit only this file to reuse the site.
-window.SITE_CONFIG = {
+// Edit this file to reuse the site for another subject.
+const SITE_CONFIG = {
   subject: "Sarte",
-  answer: "No",
-  lastChecked: "2025-05-11T11:42:00-04:00",
+  wikiSource: "https://en.wikipedia.org/wiki/Jean-Paul_Sartre",
 
-  // Optional display settings:
+  // Display settings:
   locale: "en-US",
   timeZone: "America/New_York"
 };
+
+if (typeof window !== "undefined") window.SITE_CONFIG = SITE_CONFIG;
+if (typeof module !== "undefined") module.exports = SITE_CONFIG;

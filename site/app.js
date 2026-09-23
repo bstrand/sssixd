@@ -1,22 +1,21 @@
 (() => {
   const config = window.SITE_CONFIG ?? {};
+  const status = window.SITE_STATUS ?? {};
 
   const subject = String(config.subject ?? "X").trim();
-  const rawAnswer = String(config.answer ?? "No").trim();
+  const rawAnswer = String(status.answer ?? "Unknown").trim();
   const answer = rawAnswer.replace(/[.!?]+$/, "");
-  const checkedAt = config.lastChecked ? new Date(config.lastChecked) : new Date();
+  const checkedAt = status.checkedAt ? new Date(status.checkedAt) : null;
 
   const question = `Is ${subject} Dead?`;
-  const answerText = `${answer}.`;
-
   document.getElementById("question").textContent = question;
-  document.getElementById("answer").textContent = answerText;
+  document.getElementById("answer").textContent = `${answer}.`;
   document.title = question;
 
   const timeEl = document.getElementById("last-checked");
 
-  if (Number.isNaN(checkedAt.getTime())) {
-    timeEl.textContent = "Unknown";
+  if (!checkedAt || Number.isNaN(checkedAt.getTime())) {
+    timeEl.textContent = "Never";
     timeEl.removeAttribute("datetime");
     return;
   }

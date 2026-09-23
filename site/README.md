@@ -1,35 +1,50 @@
 # Configurable “Is X Dead?” site
 
-This version keeps the visual design fixed and moves the editable content into `config.js`.
+The page is static. A scheduled GitHub Action checks the configured Wikipedia article, resolves it to Wikidata, looks for Wikidata property `P570` (date of death), and regenerates `status.js`.
 
-## Change the site
+## Configure the subject
 
-Edit:
+Edit `config.js`:
 
 ```js
-window.SITE_CONFIG = {
+const SITE_CONFIG = {
   subject: "Sarte",
-  answer: "No",
-  lastChecked: "2025-05-11T11:42:00-04:00",
+  wikiSource: "https://en.wikipedia.org/wiki/Jean-Paul_Sartre",
   locale: "en-US",
   timeZone: "America/New_York"
 };
 ```
 
-Examples:
+`wikiSource` is intentionally a human-readable Wikipedia URL. The checker resolves that article to its corresponding Wikidata item automatically.
+
+## Automated check
+
+`.github/workflows/check-death-status.yml` runs once per day and can also be started manually from the GitHub Actions tab.
+
+The checker writes `status.js`:
 
 ```js
-subject: "Disco",
-answer: "No"
+window.SITE_STATUS = {
+  answer: "Yes",
+  checkedAt: "...",
+  wikidataId: "Q9364",
+  dateOfDeath: "1980-04-15T00:00:00Z"
+};
 ```
 
-or:
+The decision rule is deliberately simple:
 
-```js
-subject: "Google Reader",
-answer: "Yes"
+- Wikidata has a `P570` date-of-death claim → `Yes`
+- no `P570` claim → `No`
+
+If the API/check fails, the workflow fails and leaves the previously published status intact.
+
+## Run locally
+
+Requires Node 22+:
+
+```bash
+node scripts/check-wikidata.js
 ```
 
-`lastChecked` should be an ISO-8601 date/time string.
-
-No build step is required. Open `index.html` directly or deploy the folder to any static host.
+Then open `index.html` in a browser.
