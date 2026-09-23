@@ -4,10 +4,12 @@ const SITE_CONFIG = {
     "Chomsky",
   wikiSource:
     "https://en.wikipedia.org/wiki/Noam_Chomsky",
-
-  // Optional display settings:
-  locale: "en-US",
-  timeZone: "America/Detroit"
+  deadImage: 
+    "images/dead.jpg",
+  locale: 
+    "en-US",
+  timeZone: 
+    "America/Detroit"
 };
 
 if (typeof window !== "undefined") window.SITE_CONFIG = SITE_CONFIG;

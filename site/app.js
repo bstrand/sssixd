@@ -29,6 +29,18 @@
     return;
   }
 
+  // If dead image (HB)
+  const image = document.getElementById("dead-image");
+  if (
+    answer.toLowerCase() === "yes" &&
+    config.deadImage
+  ) {
+    image.src = config.deadImage;
+    image.hidden = false;
+  } else {
+    image.hidden = true;
+    image.removeAttribute("src");
+  }
   const checked =
     new Date(status.checkedAt);
 
