@@ -37,7 +37,7 @@ function parseWikipediaUrl(source) {
 
   return {
     language,
-    site: `${language}wiki`,
+    site: `${language} wiki`,
     title
   };
 }
