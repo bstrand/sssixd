@@ -2,8 +2,8 @@ const fs = require("fs");
 const vm = require("vm");
 const path = require("path");
 
-const CONFIG_PATH = path.join(__dirname, "..", "site", "config.js");
-const STATUS_PATH = path.join(__dirname, "..", "site", "status.js");
+const CONFIG_PATH = path.join(__dirname, "config.js");
+const STATUS_PATH = path.join(__dirname, "status.js");
 
 function loadConfig() {
   if (!fs.existsSync(CONFIG_PATH)) {
